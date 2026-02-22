@@ -34,11 +34,16 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // FIX 2: Block invalid submissions
-    if (!validate()) return;
-
-    // FIX 1: Guard against double submission (belt-and-suspenders alongside disabled button)
-    if (submitting) return;
+    // Validation: check for empty title and negative reward
+    if (!title.trim()) {
+      alert("Title is required");
+      return;
+    }
+    const rewardNum = Number(reward);
+    if (isNaN(rewardNum) || rewardNum <= 0) {
+      alert("Reward must be a positive number");
+      return;
+    }
 
     setSubmitting(true);
 
@@ -75,8 +80,8 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
             onChange={(e) => setTitle(e.target.value)}
             className="w-full rounded-lg border border-slate-200 px-3 py-2"
             placeholder="Bounty title"
-            minLength={3} // FIX 2: HTML-level minLength
-            required      // FIX 2: HTML-level required
+            required
+            minLength={1}
           />
           {/* FIX 2: Show validation error */}
           {errors.title && (
@@ -94,7 +99,7 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
             onChange={(e) => setReward(e.target.value)}
             className="w-full rounded-lg border border-slate-200 px-3 py-2"
             placeholder="100"
-            min="1" // FIX 2: Prevent negative numbers at the HTML level
+            min="1"
           />
           {/* FIX 2: Show validation error */}
           {errors.reward && (
@@ -120,7 +125,7 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
         {/* FIX 1: Disable button while submitting */}
         <button
           type="submit"
-          className="btn w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn w-full"
           disabled={submitting}
         >
           {submitting ? "Creating..." : "Create Bounty"}
