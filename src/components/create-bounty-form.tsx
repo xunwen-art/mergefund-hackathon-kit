@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-// BUG 1: Double submission - button is not disabled during submit
-// BUG 2: Form validation - allows negative numbers and empty titles
+// BUG 2: Form validation - allows negative numbers and empty titles (see validation below)
 
 type CreateBountyFormProps = {
   onSubmit: (bounty: { title: string; reward: number; difficulty: string }) => void;
@@ -15,38 +14,50 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
   const [difficulty, setDifficulty] = useState("Easy");
   const [submitting, setSubmitting] = useState(false);
   const [submissions, setSubmissions] = useState<string[]>([]);
+  const isSubmittingRef = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation: check for empty title and negative reward
-    if (!title.trim()) {
-      alert("Title is required");
-      return;
-    }
-    const rewardNum = Number(reward);
-    if (isNaN(rewardNum) || rewardNum <= 0) {
-      alert("Reward must be a positive number");
-      return;
-    }
-
+    // Synchronous re-entry guard: prevents double submission before React re-renders
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setSubmitting(true);
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      // Validation: check for empty title and negative reward
+      if (!title.trim()) {
+        alert("Title is required");
+        isSubmittingRef.current = false;
+        setSubmitting(false);
+        return;
+      }
+      const rewardNum = Number(reward);
+      if (isNaN(rewardNum) || rewardNum <= 0) {
+        alert("Reward must be a positive number");
+        isSubmittingRef.current = false;
+        setSubmitting(false);
+        return;
+      }
 
-    const timestamp = new Date().toISOString();
-    setSubmissions((prev) => [...prev, `${title} - $${reward} at ${timestamp}`]);
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    onSubmit({
-      title,
-      reward: Number(reward), // BUG: Can be negative or NaN
-      difficulty,
-    });
+      const timestamp = new Date().toISOString();
+      setSubmissions((prev) => [...prev, `${title} - $${reward} at ${timestamp}`]);
 
-    setSubmitting(false);
-    setTitle("");
-    setReward("");
+      onSubmit({
+        title,
+        reward: Number(reward),
+        difficulty,
+      });
+
+      setTitle("");
+      setReward("");
+    } finally {
+      isSubmittingRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   return (
