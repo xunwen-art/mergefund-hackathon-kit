@@ -78,6 +78,10 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
             required
             minLength={1}
           />
+          {/* FIX 2: Show validation error */}
+          {errors.title && (
+            <p className="text-red-500 text-xs mt-1">{errors.title}</p>
+          )}
         </div>
 
         <div>
@@ -92,6 +96,10 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
             placeholder="100"
             min="1"
           />
+          {/* FIX 2: Show validation error */}
+          {errors.reward && (
+            <p className="text-red-500 text-xs mt-1">{errors.reward}</p>
+          )}
         </div>
 
         <div>
@@ -109,6 +117,7 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
           </select>
         </div>
 
+        {/* FIX 1: Disable button while submitting */}
         <button
           type="submit"
           className="btn w-full"
