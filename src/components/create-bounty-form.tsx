@@ -2,9 +2,6 @@
 
 import { useState } from "react";
 
-// BUG 1: Double submission - button is not disabled during submit
-// BUG 2: Form validation - allows negative numbers and empty titles
-
 type CreateBountyFormProps = {
   onSubmit: (bounty: { title: string; reward: number; difficulty: string }) => void;
 };
@@ -15,6 +12,24 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
   const [difficulty, setDifficulty] = useState("Easy");
   const [submitting, setSubmitting] = useState(false);
   const [submissions, setSubmissions] = useState<string[]>([]);
+  const [errors, setErrors] = useState<{ title?: string; reward?: string }>({});
+
+  // FIX 2: Validate before submitting
+  const validate = () => {
+    const newErrors: { title?: string; reward?: string } = {};
+
+    if (!title.trim() || title.trim().length < 3) {
+      newErrors.title = "Title is required and must be at least 3 characters.";
+    }
+
+    const rewardNum = Number(reward);
+    if (!reward || isNaN(rewardNum) || rewardNum <= 0) {
+      newErrors.reward = "Reward must be a positive number.";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,13 +55,14 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
 
     onSubmit({
       title,
-      reward: Number(reward), // BUG: Can be negative or NaN
+      reward: Number(reward),
       difficulty,
     });
 
     setSubmitting(false);
     setTitle("");
     setReward("");
+    setErrors({});
   };
 
   return (
@@ -67,6 +83,10 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
             required
             minLength={1}
           />
+          {/* FIX 2: Show validation error */}
+          {errors.title && (
+            <p className="text-red-500 text-xs mt-1">{errors.title}</p>
+          )}
         </div>
 
         <div>
@@ -81,6 +101,10 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
             placeholder="100"
             min="1"
           />
+          {/* FIX 2: Show validation error */}
+          {errors.reward && (
+            <p className="text-red-500 text-xs mt-1">{errors.reward}</p>
+          )}
         </div>
 
         <div>
@@ -98,6 +122,7 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
           </select>
         </div>
 
+        {/* FIX 1: Disable button while submitting */}
         <button
           type="submit"
           className="btn w-full"
