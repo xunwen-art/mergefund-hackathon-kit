@@ -19,8 +19,16 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // BUG: No validation - allows empty title and negative reward
-    // BUG: Button not disabled - allows multiple rapid clicks
+    // Validation: check for empty title and negative reward
+    if (!title.trim()) {
+      alert("Title is required");
+      return;
+    }
+    const rewardNum = Number(reward);
+    if (isNaN(rewardNum) || rewardNum <= 0) {
+      alert("Reward must be a positive number");
+      return;
+    }
 
     setSubmitting(true);
 
@@ -56,7 +64,8 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
             onChange={(e) => setTitle(e.target.value)}
             className="w-full rounded-lg border border-slate-200 px-3 py-2"
             placeholder="Bounty title"
-            // BUG: No required attribute, no minLength validation
+            required
+            minLength={1}
           />
         </div>
 
@@ -70,7 +79,7 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
             onChange={(e) => setReward(e.target.value)}
             className="w-full rounded-lg border border-slate-200 px-3 py-2"
             placeholder="100"
-            // BUG: No min attribute, allows negative numbers
+            min="1"
           />
         </div>
 
@@ -92,8 +101,7 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
         <button
           type="submit"
           className="btn w-full"
-          // BUG: Button is not disabled during submission
-          // disabled={submitting} // <- This should be added
+          disabled={submitting}
         >
           {submitting ? "Creating..." : "Create Bounty"}
         </button>
