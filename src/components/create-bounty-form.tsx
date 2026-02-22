@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+
+// BUG 2: Form validation - allows negative numbers and empty titles (see validation below)
 
 type CreateBountyFormProps = {
   onSubmit: (bounty: { title: string; reward: number; difficulty: string }) => void;
@@ -12,57 +14,50 @@ export function CreateBountyForm({ onSubmit }: CreateBountyFormProps) {
   const [difficulty, setDifficulty] = useState("Easy");
   const [submitting, setSubmitting] = useState(false);
   const [submissions, setSubmissions] = useState<string[]>([]);
-  const [errors, setErrors] = useState<{ title?: string; reward?: string }>({});
-
-  // FIX 2: Validate before submitting
-  const validate = () => {
-    const newErrors: { title?: string; reward?: string } = {};
-
-    if (!title.trim() || title.trim().length < 3) {
-      newErrors.title = "Title is required and must be at least 3 characters.";
-    }
-
-    const rewardNum = Number(reward);
-    if (!reward || isNaN(rewardNum) || rewardNum <= 0) {
-      newErrors.reward = "Reward must be a positive number.";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const isSubmittingRef = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation: check for empty title and negative reward
-    if (!title.trim()) {
-      alert("Title is required");
-      return;
-    }
-    const rewardNum = Number(reward);
-    if (isNaN(rewardNum) || rewardNum <= 0) {
-      alert("Reward must be a positive number");
-      return;
-    }
-
+    // Synchronous re-entry guard: prevents double submission before React re-renders
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setSubmitting(true);
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      // Validation: check for empty title and negative reward
+      if (!title.trim()) {
+        alert("Title is required");
+        isSubmittingRef.current = false;
+        setSubmitting(false);
+        return;
+      }
+      const rewardNum = Number(reward);
+      if (isNaN(rewardNum) || rewardNum <= 0) {
+        alert("Reward must be a positive number");
+        isSubmittingRef.current = false;
+        setSubmitting(false);
+        return;
+      }
 
-    const timestamp = new Date().toISOString();
-    setSubmissions((prev) => [...prev, `${title} - $${reward} at ${timestamp}`]);
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    onSubmit({
-      title,
-      reward: Number(reward),
-      difficulty,
-    });
+      const timestamp = new Date().toISOString();
+      setSubmissions((prev) => [...prev, `${title} - $${reward} at ${timestamp}`]);
 
-    setSubmitting(false);
-    setTitle("");
-    setReward("");
-    setErrors({});
+      onSubmit({
+        title,
+        reward: Number(reward),
+        difficulty,
+      });
+
+      setTitle("");
+      setReward("");
+    } finally {
+      isSubmittingRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   return (
