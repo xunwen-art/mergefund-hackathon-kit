@@ -1,8 +1,7 @@
 "use client";
 
-// BUG: Progress bar can exceed 100% and breaks layout
-// When funded_amount > target_amount, the progress bar overflows
-// FIX: Clamp the percentage to 100% max
+// FIXED: Progress bar now properly clamped to 0-100%
+// Handles both over-funding and division by zero cases
 
 type FundingProgressProps = {
   funded: number;
@@ -14,14 +13,24 @@ type FundingProgressProps = {
 const mockBounties = [
   { id: "1", title: "Fix memory leak", funded: 50, target: 100 },
   { id: "2", title: "Add dark mode", funded: 100, target: 100 },
-  { id: "3", title: "Optimize queries", funded: 150, target: 100 }, // BUG: Over-funded!
-  { id: "4", title: "Refactor auth", funded: 200, target: 100 }, // BUG: Way over-funded!
+  { id: "3", title: "Optimize queries", funded: 150, target: 100 }, // Over-funded (now handled)
+  { id: "4", title: "Refactor auth", funded: 200, target: 100 }, // Over-funded (now handled)
   { id: "5", title: "Add tests", funded: 75, target: 100 },
+  { id: "6", title: "Zero target bug", funded: 50, target: 0 }, // Edge case: zero target
 ];
 
 export function FundingProgress({ funded, target, title }: FundingProgressProps) {
-  // BUG: No clamping - percentage can exceed 100%
-  const percentage = (funded / target) * 100;
+  // FIX: Clamp percentage to 0-100% and handle division by zero
+  // When target is 0, show 0% if funded is also 0, or 100% if funded > 0
+  const rawPercentage = target > 0 ? (funded / target) * 100 : (funded > 0 ? 100 : 0);
+  const percentage = Math.min(Math.max(rawPercentage, 0), 100); // Clamp to 0-100
+  
+  // Determine color based on funding status
+  const getProgressColor = () => {
+    if (rawPercentage >= 100) return "from-green-400 to-emerald-500"; // Fully funded
+    if (rawPercentage >= 50) return "from-blue-400 to-blue-600"; // Halfway there
+    return "from-amber-400 to-amber-600"; // Just starting
+  };
 
   return (
     <div className="space-y-2">
@@ -29,14 +38,16 @@ export function FundingProgress({ funded, target, title }: FundingProgressProps)
         <span className="font-medium">{title}</span>
         <span className="text-slate-500">
           ${funded} / ${target}
-          {/* BUG: Shows percentage over 100% which looks wrong */}
-          <span className="ml-2 text-xs">({percentage.toFixed(0)}%)</span>
+          {/* Show actual percentage (capped at 100% for display) */}
+          <span className="ml-2 text-xs">
+            ({percentage.toFixed(0)}%{rawPercentage > 100 && " (over-funded)"})
+          </span>
         </span>
       </div>
       <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-        {/* BUG: Width can exceed 100%, breaking out of container */}
+        {/* FIXED: Width is now properly clamped to 100% max */}
         <div
-          className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-300"
+          className={`h-full bg-gradient-to-r ${getProgressColor()} transition-all duration-300`}
           style={{ width: `${percentage}%` }}
         />
       </div>
